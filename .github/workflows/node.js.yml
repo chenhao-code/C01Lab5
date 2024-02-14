@@ -1,30 +1,55 @@
-  name: Node.js CI
+name: Node.js CI
 
-  on:
-    push:
-        branches: ["main"]
-    pull_request: 
-          branches: ["main", "dev"]
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main", "dev"]
 
-  jobs:
-      build:
-          name: Backend test
-          runs-on: ubuntu-latest
+jobs:
+  build:
+    name: Backend test
+    runs-on: ubuntu-latest
 
-          defaults:
-              run:
-                  working-directory: ./quirknotes/backend
+    services:
+      mongodb:
+        image: mongo
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongo --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-          strategy:
-              matrix:
-                  node-version: [20.x]
+    defaults:
+      run:
+        working-directory: ./quirknotes/backend
 
-          steps:
-              - uses: actions/checkout@v3
+    strategy:
+      matrix:
+        node-version: [20.x]
 
-              - name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v3
-                with:
-                  node-version: ${{ matrix.node-version }}
-              - run: npm i
-              - run: npm test
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm i
+
+      - name: Start MongoDB
+        run: sudo systemctl start mongod
+
+      - name: Check MongoDB running
+        run: mongo --eval "db.runCommand({ connectionStatus: 1 })"
+
+      - name: Start server in the background
+        run: nohup node server.js &
+
+      - name: Run tests
+        run: npm test
+
