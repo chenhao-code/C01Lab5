@@ -1,0 +1,9 @@
+# CSCC01 Lab 4
+# dependencies
+node_modules/
+
+#database
+*/database
+
+# misc
+.DS_Store
